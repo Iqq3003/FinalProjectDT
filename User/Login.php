@@ -18,38 +18,55 @@ if ($conn->connect_error) {
 
 // Check if the form is submitted
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    // Get the email/phone and password from the form
+    // Get the email and password from the form
     $Uemail = $_POST['email'];
     $Upassword = $_POST['password'];
 
     // Prepare and bind
-    $stmt = $conn->prepare("SELECT * FROM users WHERE email = ? AND password = ?");
-    $stmt->bind_param("ss", $Uemail, $Upassword);
+    $stmt = $conn->prepare("SELECT * FROM users WHERE email = ?");
+    $stmt->bind_param("s", $Uemail);
 
     // Execute the statement
     $stmt->execute();
     $result = $stmt->get_result();
 
-    // Check if the credentials are valid
+    // Check if the email exists and password is correct
     if ($result->num_rows > 0) {
-        // Set session variables
-        $_SESSION['email'] = $Uemail;
-        $_SESSION['password'] = $Upassword;
-        // Close the statement and connection
-        $stmt->close();
-        $conn->close();
-        // Redirect to a protected page
-        header("Location: ../index.php");
-        exit();
+        $user_data = $result->fetch_assoc();
+        if (password_verify($Upassword, $user_data['password'])) {
+            // Set session variables
+            $_SESSION['email'] = $user_data['email'];
+            $_SESSION['username'] = $user_data['username'];
+            $_SESSION['name'] = $user_data['name'];
+            $_SESSION['surname'] = $user_data['surname'];
+            $_SESSION['age'] = $user_data['age'];
+            $_SESSION['birthday'] = $user_data['birthday'];
+            $_SESSION['user_img'] = $user_data['user_img'];
+            $_SESSION['address'] = $user_data['address'];
+
+            // Close the statement and connection
+            $stmt->close();
+            $conn->close();
+
+            // Redirect to a protected page
+            header("Location: ../index.php");
+            exit();
+        } else {
+            // Invalid credentials
+            echo "<script>alert('Invalid email or password.');</script>";
+            $_SESSION['error'] = "Invalid email or password.";
+        }
     } else {
         // Invalid credentials
+        echo "<script>alert('Invalid email or password.');</script>";
         $_SESSION['error'] = "Invalid email or password.";
-        // Close the statement and connection
-        $stmt->close();
-        $conn->close();
-        header("Location: login.php");
-        exit();
     }
+
+    // Close the statement and connection
+    $stmt->close();
+    $conn->close();
+    header("Location: login.php");
+    exit();
 }
 ?>
 

@@ -27,7 +27,7 @@ session_start();
             }
         }
     </script>
-     <link rel="stylesheet" href="indexstylesheet.css">
+    <link rel="stylesheet" href="indexstylesheet.css">
 </head>
 
 <body>
@@ -40,20 +40,23 @@ session_start();
             <a href="#section3">About Us</a>
         </div>
         <div class="userMenu">
+        
             <div class="dropdown">
                 <?php if (isset($_SESSION['email'])): ?>
                     <a href="#user">LV.999</a>
-                    <a onclick="dropdownsFunc()" class="dropbtn"><?php echo $_SESSION['email']; ?></a>
+                    <a onclick="dropdownsFunc()" class="dropbtn"><?php echo $_SESSION['username']; ?></a>
+                    <img  class="userImg" src="user_img/<?php echo $_SESSION['user_img']; ?>" alt="User Image" >
                     <div id="myDropdown" class="dropdown-content">
                         <a href="#profile">Profile</a>
                         <a href="#about">Message</a>
                         <a href="#contact">Setting</a>
+                        <a href="User/Logout.php">Log out</a>
                     </div>
-                    <a href="User/Logout.php">Log out</a>
                 <?php else: ?>
                     <a href="../FinalProjectDT/User/Login.php">Login</a>
                 <?php endif; ?>
             </div>
+            
         </div>
     </div>
 
