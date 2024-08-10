@@ -19,6 +19,8 @@ body {
     justify-content: space-between;
 }
 
+
+
 .topnav a {
     float: left;
     display: block;
@@ -36,6 +38,15 @@ body {
 .topnav a.active {
     background-color: #04AA6D;
     color: white;
+}
+
+.navigationMenu {
+    display: flex;
+}
+
+.userMenu {
+    display: flex;
+    align-items: center;
 }
 
 .dropbtn {
@@ -93,6 +104,8 @@ body {
 }
 
 .section {
+    margin-left: 10%;
+    margin-right: 10%;
     padding: 20px;
     height: 400px;
 }

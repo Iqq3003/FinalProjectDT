@@ -1,3 +1,8 @@
+<?php
+// Start the session
+session_start();
+?>
+
 <!DOCTYPE html>
 <html lang="en">
 
@@ -22,90 +27,7 @@
             }
         }
     </script>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-        }
-
-        .topnav {
-            display: flex;
-            justify-content: space-between;
-            background-color: #333;
-        }
-
-        .topnav a {
-            color: #f2f2f2;
-            text-align: center;
-            padding: 14px 16px;
-            text-decoration: none;
-        }
-
-        .topnav a:hover {
-            background-color: #ddd;
-            color: black;
-        }
-
-        .topnav a.active {
-            background-color: #04AA6D;
-            color: white;
-        }
-
-        .navigationMenu {
-            display: flex;
-        }
-
-        .userMenu {
-            display: flex;
-            align-items: center;
-        }
-
-        .dropdown {
-            position: relative;
-            display: inline-block;
-        }
-
-        .dropdown-content {
-            display: none;
-            position: absolute;
-            background-color: #f9f9f9;
-            min-width: 160px;
-            box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
-            z-index: 1;
-        }
-
-        .dropdown-content a {
-            color: black;
-            padding: 12px 16px;
-            text-decoration: none;
-            display: block;
-        }
-
-        .dropdown-content a:hover {
-            background-color: #f1f1f1;
-        }
-
-        .show {
-            display: block;
-        }
-
-        .section {
-            margin-left: 10%;
-            margin-right: 10%;
-            padding: 20px;
-            height: 400px;
-        }
-
-        .footer {
-            background-color: #333;
-            color: white;
-            text-align: center;
-            width: 100%;
-            bottom: 0;
-            overflow: hidden;
-        }
-    </style>
+     <link rel="stylesheet" href="indexstylesheet.css">
 </head>
 
 <body>
@@ -118,20 +40,20 @@
             <a href="#section3">About Us</a>
         </div>
         <div class="userMenu">
-            <a href="#user">LV.999</a>
             <div class="dropdown">
                 <?php if (isset($_SESSION['email'])): ?>
+                    <a href="#user">LV.999</a>
                     <a onclick="dropdownsFunc()" class="dropbtn"><?php echo $_SESSION['email']; ?></a>
                     <div id="myDropdown" class="dropdown-content">
                         <a href="#profile">Profile</a>
                         <a href="#about">Message</a>
                         <a href="#contact">Setting</a>
                     </div>
+                    <a href="User/Logout.php">Log out</a>
                 <?php else: ?>
                     <a href="../FinalProjectDT/User/Login.php">Login</a>
                 <?php endif; ?>
             </div>
-            <a href="#LogOut">Log out</a>
         </div>
     </div>
 
