@@ -63,47 +63,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <title>Register Step 2</title>
     <link rel="stylesheet" href="registerstyles.css">
     <!-- ใส่ Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-storage.js"></script>
-</head>
-<body>
-    <div class="register-step2-container">
-        <h2>Register Step 2</h2>
-        <form method="post" enctype="multipart/form-data" onsubmit="return validateForm()">
-            <label for="username">Username:</label>
-            <input type="text" id="username" name="username" required>
-            
-            <label for="name">Name:</label>
-            <input type="text" id="name" name="name" required>
+    <script type="module">
+        // Import Firebase modules
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+        import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-storage.js";
 
-            <label for="surname">Surname:</label>
-            <input type="text" id="surname" name="surname" required>
-
-            <label for="age">Age:</label>
-            <input type="number" id="age" name="age" required>
-
-            <label for="birthday">Birthday:</label>
-            <input type="date" id="birthday" name="birthday" required>
-
-            <label for="phone">Phone:</label>
-            <input type="text" id="phone" name="phone" required>
-
-            <label for="thai_id">Thai ID:</label>
-            <input type="text" id="thai_id" name="thai_id" required>
-
-            <label for="address">Address:</label>
-            <input type="text" id="address" name="address" required>
-
-            <label for="user_img">Upload Image:</label>
-            <input type="file" id="user_img_file" accept="image/*" required>
-            <input type="hidden" id="user_img" name="user_img">
-
-            <button type="button" onclick="uploadImage()">Upload Image</button>
-            <button type="submit">Complete Registration</button>
-        </form>
-    </div>
-
-    <script>
         // Firebase configuration
         const firebaseConfig = {
             apiKey: "AIzaSyDEAjWq7e-rh4PRaV7BBLP3SLML2707wcM",
@@ -117,16 +81,16 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         };
 
         // Initialize Firebase
-        const app = firebase.initializeApp(firebaseConfig);
-        const storage = firebase.storage();
+        const app = initializeApp(firebaseConfig);
+        const storage = getStorage(app);
 
         // Function to upload image to Firebase Storage
-        function uploadImage() {
+        window.uploadImage = function() {
             const file = document.getElementById('user_img_file').files[0];
             
             if (file) {
-                const storageRef = storage.ref('images/' + file.name);
-                const uploadTask = storageRef.put(file);
+                const storageRef = ref(storage, 'images/' + file.name);
+                const uploadTask = uploadBytesResumable(storageRef, file);
 
                 uploadTask.on('state_changed', function(snapshot) {
                     // Observe state change events such as progress
@@ -134,7 +98,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     console.log(error);
                     alert('Image upload failed!');
                 }, function() {
-                    uploadTask.snapshot.ref.getDownloadURL().then(function(downloadURL) {
+                    getDownloadURL(uploadTask.snapshot.ref).then(function(downloadURL) {
                         document.getElementById('user_img').value = downloadURL;
                         alert('Upload successful! Image URL: ' + downloadURL);
                     });
@@ -164,5 +128,43 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             return true;
         }
     </script>
+</head>
+<body>
+    <div class="register-step2-container">
+        <h2>Register Step 2</h2>
+        <form method="post" enctype="multipart/form-data" onsubmit="return validateForm()">
+            <label for="username">Username:</label>
+            <input type="text" id="username" name="username" required>
+            
+            <label for="name">Name:</label>
+            <input type="text" id="name" name="name" required>
+
+            <label for="surname">Surname:</label>
+            <input type="text" id="surname" name="surname" required>
+
+            <label for="age">Age:</label>
+            <input type="number" id="age" name="age" required>
+
+            <label for="birthday">Birthday:</label>
+            <input type="date" id="birthday" name="birthday" required>
+
+            <label for="phone">Phone:</label>
+            <input type="text" id="phone" name="phone" required>
+
+            <label for="thai_id">Thai ID:</label>
+            <input type="text" id="thai_id" name="thai_id" required>
+
+            <label for="address">Address:</label>
+            <input type="text" id="address" name="address" required>
+
+            <label for="user_img_file">Upload Image:</label>
+            <input type="file" id="user_img_file" accept="image/*" required>
+            <input type="hidden" id="user_img" name="user_img">
+
+            <button type="button" onclick="uploadImage()">Upload Image</button>
+            <button type="submit">Complete Registration</button>
+        </form>
+    </div>
 </body>
+
 </html>
