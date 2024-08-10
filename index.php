@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Home</title>
     <script>
-        function myFunction() {
+        function dropdownsFunc() {
             document.getElementById("myDropdown").classList.toggle("show");
         }
 
@@ -120,12 +120,16 @@
         <div class="userMenu">
             <a href="#user">LV.999</a>
             <div class="dropdown">
-                <a onclick="myFunction()" class="dropbtn">User</a>
-                <div id="myDropdown" class="dropdown-content">
-                    <a href="../FinalProjectDT/User/Login.php">Profile</a>
-                    <a href="#about">Message</a>
-                    <a href="#contact">Setting</a>
-                </div>
+                <?php if (isset($_SESSION['email'])): ?>
+                    <a onclick="dropdownsFunc()" class="dropbtn"><?php echo $_SESSION['email']; ?></a>
+                    <div id="myDropdown" class="dropdown-content">
+                        <a href="#profile">Profile</a>
+                        <a href="#about">Message</a>
+                        <a href="#contact">Setting</a>
+                    </div>
+                <?php else: ?>
+                    <a href="../FinalProjectDT/User/Login.php">Login</a>
+                <?php endif; ?>
             </div>
             <a href="#LogOut">Log out</a>
         </div>
