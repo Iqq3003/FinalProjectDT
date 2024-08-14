@@ -1,20 +1,7 @@
 <?php
 // Start the session
 session_start();
-
-// Database connection settings
-$servername = "localhost";
-$username = "root"; // Change this to your database username
-$password = ""; // Change this to your database password
-$dbname = "user_db"; // Change this to your database name
-
-// Create connection
-$conn = new mysqli($servername, $username, $password, $dbname);
-
-// Check connection
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
-}
+include('connection.php');
 
 // Check if the form is submitted
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
@@ -35,6 +22,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $user_data = $result->fetch_assoc();
         if (password_verify($Upassword, $user_data['password'])) {
             // Set session variables
+            $_SESSION['user_id'] = $user_data['user_id'];
             $_SESSION['email'] = $user_data['email'];
             $_SESSION['username'] = $user_data['username'];
             $_SESSION['name'] = $user_data['name'];

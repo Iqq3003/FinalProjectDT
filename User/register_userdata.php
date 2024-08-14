@@ -1,5 +1,6 @@
 <?php
 session_start();
+include('connection.php');
 
 // ตรวจสอบว่ามีการกรอก email และ password มาก่อนหรือไม่
 if (!isset($_SESSION['email'])) {
@@ -9,18 +10,8 @@ if (!isset($_SESSION['email'])) {
 }
 
 // Database connection settings
-$servername = "localhost";
-$username = "root"; // Change this to your database username
-$password = ""; // Change this to your database password
-$dbname = "user_db"; // Change this to your database name
 
-// Create connection
-$conn = new mysqli($servername, $username, $password, $dbname);
 
-// Check connection
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
-}
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // Get additional details from the form and sanitize them

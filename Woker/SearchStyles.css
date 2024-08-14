@@ -1,7 +1,25 @@
-body {
-    font-family: Arial, sans-serif;
+html, body {
+    height: 100%; /* Ensure the body takes the full height */
     margin: 0;
     padding: 0;
+}
+
+body {
+    display: flex;
+    flex-direction: column;
+}
+
+.main {
+    flex: 1; /* Allow the main content to take up available space */
+    margin: 0 10%;
+}
+
+.footer {
+    background-color: #333;
+    color: white;
+    text-align: center;
+    width: 100%;
+    height: 100px;
 }
 
 .topnav {
@@ -18,12 +36,13 @@ body {
     text-decoration: none;
     font-size: larger;
     width: 80px;
-} 
+}
+
 .userImg {
     height: 50px; 
     width: 50px; 
     padding: 0px 20px;
-    border-radius: 50%
+    border-radius: 50%;
 }
 
 .topnav a:hover {
@@ -80,15 +99,52 @@ body {
     display: block;
 }
 
-.section {
-    margin: 0 10%;
-    padding: 20px;
-    height: 400px;
+.search {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 20px;
+    flex-direction: column;
+}
+
+.searchbox {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: row;
+    width: 80%;
+}
+
+.search input {
+    width: 100%;
+    height: 50px;
+}
+
+.search button {
+    height: 50px;
+    padding: 10px;
+}
+
+.result {
+    display: flex;
+    flex-direction: row;
+    margin-bottom: 20px;
+}
+
+.filters {
+    display: flex;
+    justify-content: normal;
+    flex-direction: column;
+    margin-bottom: 20px;
+}
+
+.filters label {
+    margin-right: 10px;
 }
 
 .content {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(3, 1fr);
     gap: 20px;
     width: 100%;
 }
@@ -113,13 +169,4 @@ body {
 .job-post p {
     font-size: 14px;
     color: #555;
-}
-
-.footer {
-    background-color: #333;
-    color: white;
-    text-align: center;
-    width: 100%;
-    bottom: 0;
-    overflow: hidden;
 }
