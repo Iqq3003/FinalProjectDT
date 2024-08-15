@@ -86,7 +86,7 @@ $result2 = $conn->query($sql2);
                 while($row = $result->fetch_assoc()) {
                     $id = htmlspecialchars($row["id"]);
                     echo '<div class="job-post">';
-                    echo '<a href="#' . $id . '">';
+                    echo '<a href="User/userProfile.php?id=' . $id . '">';
                     echo '<h2>' . htmlspecialchars($row["username"]) . '</h2>';
                     echo '<img src="user_img/' . htmlspecialchars($row["user_img"]) . '" alt="user Image">';
                     echo '<p>Job: ' . htmlspecialchars($row["user_job"]) . '</p>';
