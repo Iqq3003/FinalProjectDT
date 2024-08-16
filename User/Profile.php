@@ -3,20 +3,42 @@ session_start();
 include('connection.php');
 
 // Assuming the user is logged in and their email is stored in the session
+if (!isset($_SESSION['email'])) {
+    header("Location: Login.php");
+    exit();
+}
+
 $email = $_SESSION['email'];
 
-$sql = "SELECT username, name, surname, age, address, birthday, phone, email, user_img FROM users WHERE email = ?";
+$sql = "SELECT username, name, surname, age, address, birthday, phone, email, user_img, id FROM users WHERE email = ?";
 $stmt = $conn->prepare($sql);
-$stmt->bind_param("s", $email); // Corrected the parameter type to string
+$stmt->bind_param("s", $email);
 $stmt->execute();
 $result = $stmt->get_result();
 $user = $result->fetch_assoc();
 
 if (!$user) {
-    echo("<script>alert('Abnormal Access')</script>");
     header("Location: Login.php");
     exit();
 }
+
+$userId = $user['id'];
+
+// Query for jobs done by the user
+$sqlDone = "SELECT work_id, work_N, work_img FROM workdata WHERE worker_id = ?";
+$stmtDone = $conn->prepare($sqlDone);
+$stmtDone->bind_param("i", $userId);
+$stmtDone->execute();
+$resultDone = $stmtDone->get_result();
+$jobsDone = $resultDone->fetch_all(MYSQLI_ASSOC);
+
+// Query for jobs created by the user
+$sqlCreated = "SELECT work_id, work_N, work_img FROM workdata WHERE user_id = ?";
+$stmtCreated = $conn->prepare($sqlCreated);
+$stmtCreated->bind_param("i", $userId);
+$stmtCreated->execute();
+$resultCreated = $stmtCreated->get_result();
+$jobsCreated = $resultCreated->fetch_all(MYSQLI_ASSOC);
 ?>
 
 <!DOCTYPE html>
@@ -43,11 +65,37 @@ if (!$user) {
         }
     </script>
     <link rel="stylesheet" href="../IndexStylesheet.css">
+    <style>
+    .jobs-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+        }
+
+        /* Flex item for each job */
+        .job-item {
+            flex: 1 1 calc(33% - 40px); /* Adjust the percentage based on how many items per row you want */
+            box-sizing: border-box;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+            max-width: 300px;
+        }
+
+        .job-item img {
+            width: 100%;
+            height: 200px;
+            border-radius: 8px;
+            object-fit: cover;
+        }
+    </style>
 </head>
 <body>
 <div class="topnav">
         <div class="navigationMenu">
-            <a class="active" href=",,/index.php">Home</a>
+            <a href="../">Home</a>
             <a href="../Woker/Search.php">Job</a>
             <a href="#section2">Company</a>
             <a href="#section3">About Us</a>
@@ -60,9 +108,9 @@ if (!$user) {
                     <a onclick="dropdownsFunc()" class="dropbtn"><?php echo $_SESSION['username']; ?></a>
                     <img  class="userImg" src="../user_img/<?php echo $_SESSION['user_img']; ?>" alt="User Image" >
                     <div id="myDropdown" class="dropdown-content">
-                        <a href="#">Profile</a>
-                        <a href="#about">Message</a>
-                        <a href="#contact">Setting</a>
+                        <a href="Profile.php">Profile</a>
+                        <a href="messageslist.php">Message</a>
+                        <a href="setting.php">Setting</a>
                         <a href="Logout.php">Log out</a>
                     </div>
                 <?php else: ?>
@@ -113,6 +161,39 @@ if (!$user) {
         </tr>
     </table>
     </div>
+
+    <div>
+    <h2>Jobs Done</h2>
+    <div class="jobs-container">
+        <?php if (empty($jobsDone)): ?>
+            <p>No work</p>
+        <?php else: ?>
+            <?php foreach ($jobsDone as $job): ?>
+                <div class="job-item">
+                    <h3><?php echo htmlspecialchars($job['work_N']); ?></h3>
+                    <img src="../work_img/<?php echo htmlspecialchars($job['work_img']); ?>" alt="Job Image">
+                </div>
+            <?php endforeach; ?>
+        <?php endif; ?>
+    </div>
+</div>
+
+<div>
+    <h2>Jobs Created</h2>
+    <div class="jobs-container">
+        <?php if (empty($jobsCreated)): ?>
+            <p>No work</p>
+        <?php else: ?>
+            <?php foreach ($jobsCreated as $job): ?>
+                <div class="job-item">
+                    <h3><?php echo htmlspecialchars($job['work_N']); ?></h3>
+                    <img src="../work_img/<?php echo htmlspecialchars($job['work_img']); ?>" alt="Job Image">
+                </div>
+            <?php endforeach; ?>
+        <?php endif; ?>
+    </div>
+</div>
+
     <div class="footer">
         <p>Footer Content</p>
     </div>

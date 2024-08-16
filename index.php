@@ -59,8 +59,8 @@ $result2 = $conn->query($sql2);
                     <img  class="userImg" src="user_img/<?php echo $_SESSION['user_img']; ?>" alt="User Image" >
                     <div id="myDropdown" class="dropdown-content">
                         <a href="User/Profile.php">Profile</a>
-                        <a href="#about">Message</a>
-                        <a href="#contact">Setting</a>
+                        <a href="User/messageslist.php">Message</a>
+                        <a href="User/setting.php">Setting</a>
                         <a href="User/Logout.php">Log out</a>
                     </div>
                 <?php else: ?>

@@ -1,30 +1,53 @@
 <?php
 // Start the session
 session_start();
-
-// Database connection
-$servername = "localhost"; // or your database server
-$username = "root"; // your database username
-$password = ""; // your database password
-$dbname = "user_db"; // your database name
-
-// Create connection
-$conn = new mysqli($servername, $username, $password, $dbname);
-
-// Check connection
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
-}
+include("../User/connection.php");
 
 // Get job ID from the URL
 $workId = isset($_GET['id']) ? $_GET['id'] : '';
 
-// Fetch job details from the database
-$sql = "SELECT workdata.work_id, workdata.work_N, workdata.work_img, workdata.work_description, users.username 
-        FROM workdata 
-        JOIN users ON workdata.user_id = users.id 
-        WHERE workdata.work_id = '" . $conn->real_escape_string($workId) . "'";
-$result = $conn->query($sql);
+// Handle form submissions
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (isset($_POST['accept_job'])) {
+        // Handle job acceptance
+        $workId = $_POST['work_id'];
+        $workerId = $_SESSION['user_id'];
+        $updateSql = $conn->prepare("UPDATE workdata SET is_get = 1, worker_id = ? WHERE work_id = ?");
+        $updateSql->bind_param('ss', $workerId, $workId);
+        $updateSql->execute();
+    } elseif (isset($_POST['update_is_done'])) {
+        // Handle is_done update
+        $workId = $_POST['work_id'];
+        $is_done = $_POST['is_done'];
+        $workerId = $_SESSION['user_id'];
+        $updateSql = $conn->prepare("UPDATE workdata SET is_done = ? WHERE work_id = ? AND worker_id = ?");
+        $updateSql->bind_param('sss', $is_done, $workId, $workerId);
+        $updateSql->execute();
+    }
+}
+
+// Fetch job details and worker details from the database
+$sql = "
+    SELECT
+        workdata.work_id,
+        workdata.worker_id,
+        workdata.work_N,
+        workdata.work_img,
+        workdata.work_description,
+        workdata.is_get,
+        workdata.is_done,
+        posted_by.username AS posted_by_name,
+        posted_by.id AS posted_by_id,
+        worker.username AS worker_name
+    FROM workdata
+    JOIN users AS posted_by ON workdata.user_id = posted_by.id
+    LEFT JOIN users AS worker ON workdata.worker_id = worker.id
+    WHERE workdata.work_id = ?
+";
+$stmt = $conn->prepare($sql);
+$stmt->bind_param('s', $workId);
+$stmt->execute();
+$result = $stmt->get_result();
 
 if ($result === false) {
     die("SQL Error: " . $conn->error);
@@ -54,8 +77,8 @@ $jobDetails = $result->fetch_assoc();
             <div class="dropdown">
                 <?php if (isset($_SESSION['email'])): ?>
                     <a href="#user">LV.999</a>
-                    <a onclick="dropdownsFunc()" class="dropbtn"><?php echo $_SESSION['username']; ?></a>
-                    <img class="userImg" src="../user_img/<?php echo $_SESSION['user_img']; ?>" alt="User Image">
+                    <a onclick="dropdownsFunc()" class="dropbtn"><?php echo htmlspecialchars($_SESSION['username']); ?></a>
+                    <img class="userImg" src="../user_img/<?php echo htmlspecialchars($_SESSION['user_img']); ?>" alt="User Image">
                     <div id="myDropdown" class="dropdown-content">
                         <a href="../User/Profile.php">Profile</a>
                         <a href="#about">Message</a>
@@ -73,9 +96,54 @@ $jobDetails = $result->fetch_assoc();
             <?php if ($jobDetails): ?>
                 <h1><?php echo htmlspecialchars($jobDetails["work_N"]); ?></h1>
                 <img src="../work_img/<?php echo htmlspecialchars($jobDetails["work_img"]); ?>" alt="Job Image">
-                <p><strong>Posted by:</strong> <?php echo htmlspecialchars($jobDetails["username"]); ?></p>
+                <p><strong>Posted by:</strong> <?php echo htmlspecialchars($jobDetails["posted_by_name"]); ?></p>
+                <p><strong>Worker:</strong> <?php echo htmlspecialchars($jobDetails["worker_name"]); ?></p>
+                <div>
+                    <label>Status: 
+                        <?php if ($jobDetails["is_done"] == 1): ?>
+                            <a>Accept work</a>
+                        <?php elseif ($jobDetails["is_done"] == 2): ?>
+                            <a>During work</a>
+                        <?php elseif ($jobDetails["is_done"] == 3): ?>
+                            <a>Finish work</a>
+                        <?php endif; ?>
+                    </label>
+                </div>
+
                 <p><strong>Description:</strong></p>
                 <p><?php echo htmlspecialchars($jobDetails["work_description"]); ?></p>
+
+                <?php if ($jobDetails["is_get"] == 0): ?>
+                <form method="post" action="">
+                    <input type="hidden" name="work_id" value="<?php echo htmlspecialchars($jobDetails["work_id"]); ?>">
+                    <input type="submit" name="accept_job" value="Accept">
+                </form>
+                <form action="../User/messages.php" method="get">
+                    <input type="hidden" name="receiver_id" value="<?php echo htmlspecialchars($jobDetails['posted_by_id']); ?>">
+                    <button type="submit">Send Message</button>
+                </form>
+                <?php else: ?>
+                    <?php if (isset($_SESSION['user_id']) && $_SESSION['user_id'] == $jobDetails["worker_id"]): ?>
+                <form method="post" action="">
+                    <input type="hidden" name="work_id" value="<?php echo htmlspecialchars($jobDetails["work_id"]); ?>">
+                    <label>Status:
+                        <select name="is_done">
+                            <option value="1" <?php echo $jobDetails["is_done"] == 1 ? 'selected' : ''; ?>>Accept work</option>
+                            <option value="2" <?php echo $jobDetails["is_done"] == 2 ? 'selected' : ''; ?>>During work</option>
+                            <option value="3" <?php echo $jobDetails["is_done"] == 3 ? 'selected' : ''; ?>>Finish work</option>
+                        </select>
+                    </label>
+                    <input type="submit" name="update_is_done" value="Update">
+                </form>
+                <?php endif; ?>
+                <div class="job_mmenu">
+                    <a href="#">Cancel</a>
+                    <form action="../User/messages.php" method="get">
+                        <input type="hidden" name="receiver_id" value="<?php echo htmlspecialchars($jobDetails['posted_by_id']); ?>">
+                        <button type="submit">Send Message</button>
+                    </form>
+                </div>
+                <?php endif; ?>
             <?php else: ?>
                 <p>Job details not found.</p>
             <?php endif; ?>

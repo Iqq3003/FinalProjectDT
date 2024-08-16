@@ -1,54 +1,107 @@
 <?php
 session_start();
-include('connection.php');
+include 'connection.php'; // Include your database connection file
 
-// ตรวจสอบว่าผู้ใช้ได้เข้าสู่ระบบแล้วหรือไม่
+// Check if the user is logged in
 if (!isset($_SESSION['email'])) {
     header('Location: login.php');
     exit();
 }
 
-// ฟังก์ชันสำหรับดึงข้อมูลผู้ใช้
-function getUserById($id, $conn) {
-    $stmt = $conn->prepare("SELECT * FROM users WHERE id = ?");
-    $stmt->bind_param("i", $id);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    return $result->fetch_assoc();
-}
+$email = $_SESSION['email'];
 
-// ฟังก์ชันสำหรับดึงข้อความระหว่างผู้ใช้สองคน
-function getMessages($user1_id, $user2_id, $conn) {
-    $stmt = $conn->prepare("SELECT * FROM messages WHERE (sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?) ORDER BY sent_at ASC");
-    $stmt->bind_param("iiii", $user1_id, $user2_id, $user2_id, $user1_id);
-    $stmt->execute();
-    return $stmt->get_result();
-}
+// Prepare and execute the query to get the user ID
+$sql = "SELECT id FROM users WHERE email = ?";
+$stmt = $conn->prepare($sql);
+$stmt->bind_param("s", $email);
+$stmt->execute();
+$result = $stmt->get_result();
+$user_data = $result->fetch_assoc();
 
-// ฟังก์ชันสำหรับส่งข้อความ
-if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['message'])) {
-    $message = $_POST['message'];
-    $receiver_id = $_POST['receiver_id'];
-    $sender_id = $_SESSION['user_id'];
-
-    if (!empty($message)) {
-        $stmt = $conn->prepare("INSERT INTO messages (sender_id, receiver_id, message) VALUES (?, ?, ?)");
-        $stmt->bind_param("iis", $sender_id, $receiver_id, $message);
-        $stmt->execute();
-    }
-}
-
-// ตรวจสอบว่ามีการเลือกผู้รับหรือไม่
-if (isset($_GET['receiver_id'])) {
-    $receiver_id = $_GET['receiver_id'];
-    $sender_id = $_SESSION['user_id'];
-    $receiver = getUserById($receiver_id, $conn);
-    $messages = getMessages($sender_id, $receiver_id, $conn);
+if ($user_data) {
+    $user_id = $user_data['id']; // Correctly retrieve the user_id
 } else {
-    echo "กรุณาเลือกผู้รับข้อความ.";
-
-
+    // Handle the case where the user is not found
+    echo "User not found.";
     exit();
+}
+
+$other_user_id = isset($_GET['receiver_id']) ? (int)$_GET['receiver_id'] : 0;
+
+// Check if other_user_id is set correctly
+if ($other_user_id == 0) {
+    echo "Invalid receiver ID.";
+    exit();
+}
+
+// Fetch messages between the two users
+$sql = "SELECT m.message, m.sent_at, u.username AS sender
+        FROM messages m
+        JOIN users u ON m.sender_id = u.id
+        WHERE (m.sender_id = ? AND m.receiver_id = ?) 
+        OR (m.sender_id = ? AND m.receiver_id = ?)
+        ORDER BY m.sent_at";
+$stmt = $conn->prepare($sql);
+$stmt->bind_param("iiii", $user_id, $other_user_id, $other_user_id, $user_id);
+$stmt->execute();
+$result = $stmt->get_result();
+
+// Fetch the username of the other user
+$sql_user = "SELECT username FROM users WHERE id = ?";
+$stmt_user = $conn->prepare($sql_user);
+$stmt_user->bind_param("i", $other_user_id);
+$stmt_user->execute();
+$result_user = $stmt_user->get_result();
+$other_user_data = $result_user->fetch_assoc();
+
+if ($other_user_data) {
+    $other_username = htmlspecialchars($other_user_data['username']); // Corrected this line
+} else {
+    // Handle the case where the other user is not found
+    $other_username = "Unknown User";
+}
+
+// Process the form submission
+if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    $message = isset($_POST['message']) ? trim($_POST['message']) : '';
+    
+    if (!empty($message)) { // Check if message is not empty
+        // Insert message into database
+        $sql_insert = "INSERT INTO messages (sender_id, receiver_id, message, sent_at) VALUES (?, ?, ?, NOW())";
+        $stmt_insert = $conn->prepare($sql_insert);
+        $stmt_insert->bind_param("iis", $user_id, $other_user_id, $message);
+
+        if ($stmt_insert->execute()) {
+            $last_message_id = $conn->insert_id; // Get the ID of the last inserted message
+            
+            // Check if conversation record exists
+            $sql_convo_check = "SELECT * FROM conversations WHERE (user1_id = ? AND user2_id = ?) OR (user1_id = ? AND user2_id = ?)";
+            $stmt_convo_check = $conn->prepare($sql_convo_check);
+            $stmt_convo_check->bind_param("iiii", $user_id, $other_user_id, $other_user_id, $user_id);
+            $stmt_convo_check->execute();
+            $result_convo_check = $stmt_convo_check->get_result();
+
+            if ($result_convo_check->num_rows == 0) {
+                // Insert new conversation record
+                $sql_convo_insert = "INSERT INTO conversations (user1_id, user2_id, last_message_id) VALUES (?, ?, ?)";
+                $stmt_convo_insert = $conn->prepare($sql_convo_insert);
+                $stmt_convo_insert->bind_param("iii", $user_id, $other_user_id, $last_message_id);
+                $stmt_convo_insert->execute();
+            } else {
+                // Update existing conversation record with the last message ID
+                $sql_convo_update = "UPDATE conversations SET last_message_id = ? WHERE (user1_id = ? AND user2_id = ?) OR (user1_id = ? AND user2_id = ?)";
+                $stmt_convo_update = $conn->prepare($sql_convo_update);
+                $stmt_convo_update->bind_param("iiiii", $last_message_id, $user_id, $other_user_id, $other_user_id, $user_id);
+                $stmt_convo_update->execute();
+            }
+
+            // Redirect back to the chat page
+            header("Location: messages.php?receiver_id=" . $other_user_id);
+            exit();
+        } else {
+            echo "Error: " . htmlspecialchars($stmt_insert->error); // Escape output
+        }
+    }
 }
 ?>
 
@@ -57,106 +110,72 @@ if (isset($_GET['receiver_id'])) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Messenger</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-        }
-        .container {
-            width: 80%;
-            margin: auto;
-            max-width: 800px;
-        }
-        .message-list {
-            border: 1px solid #ccc;
-            padding: 10px;
-            height: 400px;
-            overflow-y: scroll;
-            margin-bottom: 20px;
-        }
-        .message {
-            margin-bottom: 10px;
-        }
-        .message .sender {
-            font-weight: bold;
-        }
-        .message .time {
-            color: #999;
-            font-size: 0.9em;
-        }
-        .message-form {
-            display: flex;
-        }
-        .message-form textarea {
-            flex-grow: 1;
-            padding: 10px;
-            font-size: 1em;
-        }
-        .message-form button {
-            padding: 10px 20px;
-            font-size: 1em;
-        }
-    </style>
+    <title>Chat with <?php echo $other_username; ?></title>
     <script>
-        // ฟังก์ชันสำหรับ fetch ข้อความใหม่ ๆ
-        function fetchMessages() {
-            const receiver_id = '<?php echo $receiver_id; ?>';
-            const receiver_username = '<?php echo htmlspecialchars($receiver['username']); ?>';
-            const xhr = new XMLHttpRequest();
-            xhr.open('GET', `fetch_messages.php?receiver_id=${receiver_id}&receiver_username=${receiver_username}`, true);
-            xhr.onload = function () {
-                if (xhr.status === 200) {
-                    const messages = JSON.parse(xhr.responseText);
-                    const messageList = document.querySelector('.message-list');
-                    messageList.innerHTML = '';
-
-                    messages.forEach(msg => {
-                        const messageDiv = document.createElement('div');
-                        messageDiv.classList.add('message');
-                        messageDiv.innerHTML = `<div class="sender">${msg.sender}:</div>
-                                                <div class="content">${msg.message}</div>
-                                                <div class="time">${msg.time}</div>`;
-                        messageList.appendChild(messageDiv);
-                    });
-
-                    // Scroll to bottom after updating messages
-                    messageList.scrollTop = messageList.scrollHeight;
-                }
-            };
-            xhr.send();
+        function dropdownsFunc() {
+            document.getElementById("myDropdown").classList.toggle("show");
         }
 
-        // เรียกใช้ฟังก์ชัน fetchMessages ทุก ๆ 5 วินาที
-        setInterval(fetchMessages, 5000);
-        window.onload = fetchMessages;
+        window.onclick = function (event) {
+            if (!event.target.matches('.dropbtn')) {
+                var dropdowns = document.getElementsByClassName("dropdown-content");
+                for (var i = 0; i < dropdowns.length; i++) {
+                    var openDropdown = dropdowns[i];
+                    if (openDropdown.classList.contains('show')) {
+                        openDropdown.classList.remove('show');
+                    }
+                }
+            }
+        }
     </script>
+    <link rel="stylesheet" href="../IndexStylesheet.css">
 </head>
 <body>
+<div class="topnav">
+        <div class="navigationMenu">
+            <a href="../">Home</a>
+            <a href="../Woker/Search.php">Job</a>
+            <a href="#section2">Company</a>
+            <a href="#section3">About Us</a>
+        </div>
+        <div class="userMenu">
+        
+            <div class="dropdown">
+                <?php if (isset($_SESSION['email'])): ?>
+                    <a href="#user">LV.999</a>
+                    <a onclick="dropdownsFunc()" class="dropbtn"><?php echo $_SESSION['username']; ?></a>
+                    <img  class="userImg" src="../user_img/<?php echo $_SESSION['user_img']; ?>" alt="User Image" >
+                    <div id="myDropdown" class="dropdown-content">
+                        <a href="Profile.php">Profile</a>
+                        <a href="messageslist.php">Message</a>
+                        <a href="setting.php">Setting</a>
+                        <a href="Logout.php">Log out</a>
+                    </div>
+                <?php else: ?>
+                    <a href="../FinalProjectDT/User/Login.php">Login</a>
+                <?php endif; ?>
+            </div>
+            
+        </div>
+    </div>
+    <div id="section1" class="section">
+    <h1>Chat with <?php echo $other_username; ?></h1>
 
-<div class="container">
-    <h1>Messenger with <?php echo htmlspecialchars($receiver['username']); ?></h1>
-
-    <div class="message-list">
-        <!-- ข้อความจะถูกโหลดโดย JavaScript -->
+    <div class="chat-box">
+        <?php while ($row = $result->fetch_assoc()): ?>
+            <p><strong><?php echo htmlspecialchars($row['sender']); ?>:</strong> 
+               <?php echo htmlspecialchars($row['message']); ?>
+               <span>(<?php echo htmlspecialchars($row['sent_at']); ?>)</span></p>
+        <?php endwhile; ?>
     </div>
 
-    <form class="message-form" method="post" action="">
-        <textarea name="message" rows="3" placeholder="Type your message here..."></textarea>
-        <input type="hidden" name="receiver_id" value="<?php echo $receiver_id; ?>">
+    <form method="POST" action="">
+        <textarea name="message" placeholder="Type your message here..." required></textarea><br>
         <button type="submit">Send</button>
     </form>
-</div>
-
+    </div>
+    <div class="footer">
+        <p>Footer Content</p>
+    </div>
 </body>
 </html>
-
-<?php
-// ปิดการเชื่อมต่อกับฐานข้อมูล
-$conn->close();
-?>
-
-
-<?php
-// ปิดการเชื่อมต่อกับฐานข้อมูล
-$conn->close();
-?>

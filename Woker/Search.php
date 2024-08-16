@@ -122,7 +122,7 @@ if ($jobOptionsResult->num_rows > 0) {
 <div class="topnav">
     <div class="navigationMenu">
         <a href="../index.php">Home</a>
-        <a class="active" href="#section1">Job</a>
+        <a class="active" href="Search.php">Job</a>
         <a href="#section2">Company</a>
         <a href="#section3">About Us</a>
     </div>
@@ -134,8 +134,8 @@ if ($jobOptionsResult->num_rows > 0) {
                 <img class="userImg" src="../user_img/<?php echo $_SESSION['user_img']; ?>" alt="User Image">
                 <div id="myDropdown" class="dropdown-content">
                     <a href="../User/Profile.php">Profile</a>
-                    <a href="#about">Message</a>
-                    <a href="#contact">Setting</a>
+                    <a href="../User/messageslist.php">Message</a>
+                    <a href="../User/setting.php">Setting</a>
                     <a href="../User/Logout.php">Log out</a>
                 </div>
             <?php else: ?>
